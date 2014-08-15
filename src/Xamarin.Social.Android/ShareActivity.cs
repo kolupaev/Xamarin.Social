@@ -253,18 +253,20 @@ namespace Xamarin.Social
 			try {
 				state.CancelSource = new CancellationTokenSource ();
 				state.Service.ShareItemAsync (state.Item, state.ActiveAccount, state.CancelSource.Token).ContinueWith (task => {
-					StopSending ();
-					if (task.IsFaulted) {
-						this.ShowError ("Send Error", task.Exception);
-					}
-					else {
-						if (state.CompletionHandler != null) {
-							state.CompletionHandler (ShareResult.Done);
+					RunOnUiThread(() => {
+						StopSending ();
+						if (task.IsFaulted) {
+							this.ShowError ("Send Error", task.Exception);
 						}
-						SetResult (Result.Ok);
-						Finish ();
-					}
-				}, TaskScheduler.FromCurrentSynchronizationContext ());
+						else {
+							if (state.CompletionHandler != null) {
+								state.CompletionHandler (ShareResult.Done);
+							}
+							SetResult (Result.Ok);
+							Finish ();
+						}
+					});
+				});
 			}
 			catch (Exception ex) {
 				StopSending ();
@@ -334,17 +336,19 @@ namespace Xamarin.Social
 		void BeginGetAccounts ()
 		{
 			state.Service.GetAccountsAsync (this).ContinueWith (t => {
-				if (t.IsFaulted) {
-					this.ShowError ("Share Error", t.Exception);
-				}
-				else {
-					state.Accounts = t.Result.ToList ();
-					if (state.ActiveAccount == null) {
-						state.ActiveAccount = state.Accounts.FirstOrDefault ();
+				RunOnUiThread(() => {
+					if (t.IsFaulted) {
+						this.ShowError ("Share Error", t.Exception);
 					}
-					UpdateAccountUI ();
-				}
-			}, TaskScheduler.FromCurrentSynchronizationContext ());
+					else {
+						state.Accounts = t.Result.ToList ();
+						if (state.ActiveAccount == null) {
+							state.ActiveAccount = state.Accounts.FirstOrDefault ();
+						}
+						UpdateAccountUI ();
+					}
+				});
+			});
 		}
 
 		void UpdateAccountUI ()
